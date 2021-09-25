@@ -102,6 +102,8 @@ class ImuFilterRos : public rclcpp::Node
     geometry_msgs::msg::Vector3 mag_bias_;
     double orientation_variance_;
 
+    bool remove_gravity_vector_;
+
     // **** state variables
     std::mutex mutex_;
     std::timed_mutex timed_mutex_;

@@ -43,6 +43,7 @@ ImuFilterRos::ImuFilterRos(
   reverse_tf_ = declare_parameter("reverse_tf", false);
   fixed_frame_ = declare_parameter("fixed_frame", "odom");
   constant_dt_ = declare_parameter("constant_dt", 0.0);
+  remove_gravity_vector_ = declare_parameter("remove_gravity_vector", false);
   publish_debug_topics_ = declare_parameter("publish_debug_topics", false);
 
   use_magnetic_field_msg_ = declare_parameter("use_magnetic_field_msg", false);
@@ -87,6 +88,11 @@ ImuFilterRos::ImuFilterRos(
     RCLCPP_INFO(this->get_logger(), "Using dt computed from message headers");
   else
     RCLCPP_INFO(this->get_logger(), "Using constant dt of %f sec", constant_dt_);
+
+  if (remove_gravity_vector_)
+    RCLCPP_INFO(this->get_logger(), "The gravity vector will be removed from the acceleration");
+  else
+    RCLCPP_INFO(this->get_logger(), "The gravity vector is kept in the IMU message.");
 
   // **** register dynamic reconfigure
   declare_parameter("gain", 0.1);
@@ -327,6 +333,14 @@ void ImuFilterRos::publishFilteredMsg(const ImuMsg::SharedPtr imu_msg_raw)
   imu_msg->orientation_covariance[6] = 0.0;
   imu_msg->orientation_covariance[7] = 0.0;
   imu_msg->orientation_covariance[8] = orientation_variance_;
+
+  if(remove_gravity_vector_){
+    float gx, gy, gz;
+    filter_.getGravity(gx, gy, gz);
+    imu_msg->linear_acceleration.x -= gx;
+    imu_msg->linear_acceleration.y -= gy;
+    imu_msg->linear_acceleration.z -= gz;
+  }
 
   imu_publisher_->publish(*imu_msg);
 
